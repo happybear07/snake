@@ -1,0 +1,7 @@
+[project]
+name = "acorn-snake"
+version = "0.1.0"
+description = "도토리 스네이크 - tkinter로 만든 스네이크 게임 (표준 라이브러리만 사용)"
+readme = "plan.md"
+requires-python = ">=3.9"
+dependencies = []

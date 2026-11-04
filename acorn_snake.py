@@ -1,8 +1,10 @@
-"""도토리 스네이크 (Acorn Snake) - 표준 라이브러리(tkinter)만 사용."""
+"""도토리 스네이크 (Acorn Snake) - 먹이는 PokeAPI 로 받아 온 포켓몬."""
 import json
 import random
 import tkinter as tk
 from pathlib import Path
+
+import pokemon
 
 GRID, CELL, TOP = 20, 24, 36
 BASE_MS, MIN_MS, STEP_MS = 110, 50, 8
@@ -39,6 +41,9 @@ class AcornSnake:
         root.bind("<KeyPress>", self.on_key)
         root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.job = None
+        self.feeder = pokemon.Feeder()  # 뒤에서 포켓몬을 받아 둔다
+        self.sprites = {}               # 이미지 참조 보관 (GC 방지)
+        self.mon = None
         self.reset()
 
     def reset(self):
@@ -50,6 +55,7 @@ class AcornSnake:
         self.dir = (1, 0)
         self.queue = []  # 다음 틱들에 적용할 방향(최대 2개)
         self.score = 0
+        self.boost = self.grow = 0   # 가속 남은 틱 / 꼬리 더 남길 틱
         self.start_best = self.best
         self.state = "ready"
         self.place_acorn()
@@ -59,9 +65,17 @@ class AcornSnake:
         free = [(x, y) for x in range(GRID) for y in range(GRID)
                 if (x, y) not in self.snake]
         self.acorn = random.choice(free) if free else None
+        self.mon = self.feeder.take()   # 준비된 게 없으면 None -> 갈색 네모
+        if self.mon and self.mon["name"] not in self.sprites:
+            # 참조를 안 들고 있으면 파이썬이 이미지를 치워 빈칸이 된다
+            img = tk.PhotoImage(data=self.mon["png"])
+            self.sprites[self.mon["name"]] = img.subsample(4, 4)  # 96 -> 24
 
     def interval(self):
-        return max(MIN_MS, BASE_MS - STEP_MS * (self.score // 5))
+        ms = BASE_MS - STEP_MS * (self.score // 5)
+        if self.boost > 0:
+            ms //= 2                    # electric 을 먹으면 두 배 빠르게
+        return max(MIN_MS, ms)
 
     def on_key(self, event):
         key = event.keysym
@@ -99,20 +113,34 @@ class AcornSnake:
                 self.dir = new
         head = (self.snake[0][0] + self.dir[0], self.snake[0][1] + self.dir[1])
         eating = head == self.acorn
-        body = self.snake if eating else self.snake[:-1]  # 꼬리 칸은 비켜 주므로 통과 가능
+        body = self.snake if eating else self.snake[:-1]  # 꼬리 칸은 비켜 준다
         if not (0 <= head[0] < GRID and 0 <= head[1] < GRID) or head in body:
             return self.game_over()
         self.snake.insert(0, head)
         if eating:
-            self.score += 1
+            self.score += self.eat()
             self.place_acorn()
+        elif self.grow > 0:
+            self.grow -= 1              # 한 틱 더 꼬리를 남긴다 (heavy)
         else:
             self.snake.pop()
+        if self.boost > 0:
+            self.boost -= 1
         self.best = max(self.best, self.score)
         self.draw()
         if self.acorn is None:  # 판을 꽉 채운 경우
             return self.game_over()
         self.job = self.root.after(self.interval(), self.tick)
+
+    def eat(self):
+        """타입별 효과를 적용하고 오른 점수를 돌려준다."""
+        kind = pokemon.effect_of(self.mon["type"]) if self.mon else "plain"
+        if kind == "fast":
+            self.boost = 25         # 약 25틱 동안 두 배 속도
+        elif kind == "heavy":
+            self.grow = 1           # 꼬리를 한 틱 더 남겨 길이 +2
+            return 2
+        return 1
 
     def game_over(self):
         self.state = "over"
@@ -133,10 +161,18 @@ class AcornSnake:
         c = self.canvas
         c.delete("all")
         c.create_rectangle(0, 0, GRID * CELL, TOP, fill="#e6dcc3", outline="")
-        c.create_text(10, TOP // 2, anchor="w", font=(FONT, 12, "bold"), fill="#3b2f1e",
-                      text=f"점수 {self.score} · 최고 {self.best}")
+        label = f"점수 {self.score} · 최고 {self.best}"
+        if self.mon:
+            label += f" · {self.mon['name']}({self.mon['type']})"
+        c.create_text(10, TOP // 2, anchor="w", font=(FONT, 11, "bold"), fill="#3b2f1e",
+                      text=label)
         if self.acorn:
-            self.cell(self.acorn, "#8b5a2b")
+            sprite = self.sprites.get(self.mon["name"]) if self.mon else None
+            if sprite:
+                c.create_image(self.acorn[0] * CELL + CELL // 2,
+                               TOP + self.acorn[1] * CELL + CELL // 2, image=sprite)
+            else:
+                self.cell(self.acorn, "#8b5a2b")    # 아직 못 받았으면 갈색 네모
         for i, pos in enumerate(self.snake):
             self.cell(pos, "#2e7d32" if i == 0 else "#4caf50")
         if self.state == "ready":
@@ -150,6 +186,7 @@ class AcornSnake:
             self.message("R 다시 시작", 44, 12)
 
     def on_close(self):
+        self.feeder.stop()
         if self.job:
             self.root.after_cancel(self.job)
         if self.best > self.saved_best:

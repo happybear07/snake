@@ -1,10 +1,13 @@
-"""plan.md 「체크리스트」 14개 항목 자동 검증.
+"""plan.md 와 api-plan.md 의 「체크리스트」 22개 항목 자동 검증.
 
 방향키/스페이스/R 은 tkinter event_generate 로 실제 KeyPress 이벤트를 창에 보낸다.
 루프 진행은 (a) 실제 시간을 흘려보내거나 (b) 예약을 취소하고 tick() 을 한 번 호출한다.
+PokeAPI 를 실제로 부르는 항목은 15·16·20·22 번뿐이고, 나머지는 네트워크를 끊은
+상태로 돌려 결과가 인터넷 사정에 흔들리지 않게 한다.
 결과는 verify_result.txt (UTF-8) 에 적는다.
 """
 import ast
+import gc
 import io
 import sys
 import time
@@ -13,9 +16,31 @@ import traceback
 from pathlib import Path
 
 import acorn_snake as A
+import pokemon
 
 OUT = []
 RESULTS = []
+
+_real_fetch = pokemon.fetch_one
+_real_get = pokemon.requests.Session.get
+
+
+def offline(on=True):
+    """포켓몬을 한 마리도 못 받는 상태로 만든다(또는 되돌린다)."""
+    pokemon.fetch_one = (lambda session: None) if on else _real_fetch
+
+
+def cut_network(on=True):
+    """requests 자체가 실패하게 만든다 — 인터넷이 끊긴 상황."""
+    if on:
+        pokemon.fetch_one = _real_fetch       # 실패 처리를 진짜로 거치게 한다
+
+        def boom(*a, **k):
+            raise pokemon.requests.ConnectionError("network cut (테스트)")
+        pokemon.requests.Session.get = boom
+    else:
+        pokemon.requests.Session.get = _real_get
+        offline(True)
 
 
 def log(s=""):
@@ -29,13 +54,42 @@ def wait(root, ms):
         root.update()
 
 
+def tidy(root, g, destroy):
+    """예약된 after() 와 받아오던 스레드를 정리하고 창을 닫는다.
+
+    바로 destroy() 하면 남아 있던 예약이 없어진 창을 찾아 Tcl 경고를 뿜는다.
+    게임의 on_close() 가 하는 일과 같지만, 최고 점수는 건드리지 않는다.
+    """
+    g.feeder.stop()
+    for job in filter(None, (g.poll_job, g.job)):
+        try:
+            root.after_cancel(job)
+        except tk.TclError:
+            pass
+    g.poll_job = g.job = None
+    g.sprites.clear()        # 창이 살아 있는 동안 이미지를 먼저 버린다
+    root.destroy = destroy   # 덮어쓴 것을 되돌려 순환 참조를 끊는다
+    destroy()                # (안 끊으면 Tk 객체가 끝까지 남아 종료 때 말썽)
+    gc.collect()             # 다음 창을 만들기 전에 앞 창의 뒤처리를 끝낸다
+
+
 def new_game(acorn=None):
     root = tk.Tk()
     g = A.AcornSnake(root)
     if acorn is not None:
-        g.acorn = acorn          # 우연히 도토리를 먹어 결과가 흐려지지 않게 멀리 둔다
+        g.acorn = acorn          # 우연히 먹이를 먹어 결과가 흐려지지 않게 멀리 둔다
     root.update()
+    real = root.destroy
+    root.destroy = lambda: tidy(root, g, real)  # 검사마다 뒤처리를 빠뜨리지 않게
     return root, g
+
+
+def wait_for_mon(root, g, limit=15):
+    """포켓몬이 도착할 때까지 기다린다. (받은 것, 기다린 초) 를 돌려준다."""
+    start = time.perf_counter()
+    while g.mon is None and time.perf_counter() - start < limit:
+        wait(root, 100)
+    return g.mon, time.perf_counter() - start
 
 
 def press(root, key):
@@ -302,45 +356,224 @@ def t12():
 
 # ---------------------------------------------------------------------- 13
 def t13():
-    src = Path(A.__file__).read_text(encoding="utf-8")
+    """외부 패키지는 requests 하나, pyproject 와 uv.lock 에 잠겨 있다."""
     mods = set()
-    for node in ast.walk(ast.parse(src)):
-        if isinstance(node, ast.Import):
-            mods.update(a.name.split(".")[0] for a in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            mods.add(node.module.split(".")[0])
-    stdlib = {"json", "random", "tkinter", "pathlib"}
+    for f in (A.__file__, pokemon.__file__):
+        for node in ast.walk(ast.parse(Path(f).read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import):
+                mods.update(a.name.split(".")[0] for a in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                mods.add(node.module.split(".")[0])
+    stdlib = {"json", "random", "tkinter", "pathlib", "base64", "queue", "threading"}
+    third = mods - stdlib - {"pokemon"}
     pyproj = Path("pyproject.toml").read_text(encoding="utf-8")
     lock = Path("uv.lock").read_text(encoding="utf-8")
-    third = [ln for ln in lock.splitlines()
-             if ln.startswith("name = ") and "acorn-snake" not in ln]
-    ok = (mods <= stdlib and "dependencies = []" in pyproj and not third)
-    d = ("import=%s (전부 표준 라이브러리=%s) / pyproject 에 dependencies=[] 있음=%s / "
-         "uv.lock 의 외부 패키지=%s"
-         % (sorted(mods), mods <= stdlib, "dependencies = []" in pyproj, third or "없음"))
+    locked = [ln.split('"')[1] for ln in lock.splitlines() if ln.startswith("name = ")]
+    ok = (third == {"requests"} and "requests" in pyproj
+          and "requests" in locked and "acorn-snake" in locked)
+    d = ("import=%s / 외부 패키지=%s / pyproject 에 requests 있음=%s / "
+         "uv.lock 에 잠긴 이름=%s"
+         % (sorted(mods), sorted(third), "requests" in pyproj, locked))
     return ok, d
 
 
 # ---------------------------------------------------------------------- 14
 def t14():
-    pys = sorted(p.name for p in Path(".").glob("*.py") if p.name != Path(__file__).name)
-    src = Path(A.__file__).read_text(encoding="utf-8")
-    lines = len(src.splitlines())
+    """게임 코드와 API 코드가 나뉘고, 각 파일이 200줄 이하다."""
+    sizes = {}
+    for f in (A.__file__, pokemon.__file__):
+        sizes[Path(f).name] = len(Path(f).read_text(encoding="utf-8").splitlines())
+    src = (Path(A.__file__).read_text(encoding="utf-8")
+           + Path(pokemon.__file__).read_text(encoding="utf-8"))
     classes = [ln.strip() for ln in src.splitlines() if ln.strip().startswith("class ")]
     multi = [c for c in classes if "," in c]
     banned = [w for w in ("flask", "django", "fastapi", "pygame", "http.server",
-                          "webbrowser", "<html") if w in src.lower()]
-    ok = (1 <= len(pys) <= 3 and lines <= 200 and not multi and not banned)
-    d = ("게임 py 파일=%s, %d줄(<=200), 클래스 선언=%s (다중상속=%s), 웹/프레임워크 키워드=%s"
-         % (pys, lines, classes, multi or "없음", banned or "없음"))
+                          "webbrowser", "<html", "PIL", "Pillow") if w in src]
+    ok = (len(sizes) == 2 and max(sizes.values()) <= 200 and not multi and not banned)
+    d = ("파일 줄 수=%s (전부 200 이하=%s) / 클래스=%s (다중상속=%s) / "
+         "웹·프레임워크·이미지 라이브러리=%s"
+         % (sizes, max(sizes.values()) <= 200, classes, multi or "없음",
+            banned or "없음"))
+    return ok, d
+
+
+# ---------------------------------------------------------------------- 15
+def t15():
+    """창은 기다림 없이 뜨고, 잠시 뒤 먹이가 포켓몬 그림으로 바뀐다."""
+    offline(False)
+    t0 = time.perf_counter()
+    root = tk.Tk()
+    g = A.AcornSnake(root)
+    root.update()
+    open_sec = time.perf_counter() - t0
+    first = g.mon                              # 켠 직후에는 아직 없는 게 정상
+    got, waited = wait_for_mon(root, g)
+    images = [i for i in g.canvas.find_all() if g.canvas.type(i) == "image"]
+    ok = (open_sec < 1.0 and first is None and got is not None and bool(images))
+    d = ("창 뜨는 데 %.3f초(<1초), 켠 직후 먹이=%s, %.1f초 뒤 포켓몬=%s, "
+         "캔버스 image 요소=%d개"
+         % (open_sec, first, waited, got and got["name"], len(images)))
+    tidy(root, g, root.destroy)
+    offline(True)
+    return ok, d
+
+
+# ---------------------------------------------------------------------- 16
+def t16():
+    """점수바에 지금 먹이의 이름과 타입이 보인다."""
+    offline(False)
+    root, g = new_game()
+    mon, waited = wait_for_mon(root, g)
+    bar = [t for t in texts_of(g) if "점수" in t]
+    ok = bool(mon and bar and mon["name"] in bar[0] and mon["type"] in bar[0])
+    d = ("%.1f초 뒤 받은 포켓몬=%s / 점수바=%s"
+         % (waited, mon and (mon["name"], mon["type"]), bar))
+    root.destroy()
+    offline(True)
+    return ok, d
+
+
+def feed(g, root, type_name):
+    """머리 바로 앞에 주어진 타입의 먹이를 놓고 한 틱 진행한다."""
+    g.mon = {"name": "test-" + type_name, "type": type_name, "png": b""}
+    hx, hy = g.snake[0]
+    g.acorn = (hx + g.dir[0], hy + g.dir[1])
+    n0, s0 = len(g.snake), g.score
+    step(root, g)
+    return n0, s0
+
+
+# ---------------------------------------------------------------------- 17
+def t17():
+    """electric: 점수 +1, 길이 +1, 그리고 틱 간격이 절반이 된다."""
+    root, g = new_game(acorn=(0, 0))
+    press(root, "Right")
+    plain_ms = g.interval()
+    n0, s0 = feed(g, root, "electric")
+    fast_ms, boost = g.interval(), g.boost
+    ok = (g.score == s0 + 1 and len(g.snake) == n0 + 1 and boost > 0
+          and fast_ms < plain_ms and fast_ms == max(A.MIN_MS, plain_ms // 2))
+    d = ("점수 %d->%d, 길이 %d->%d, 남은 가속 틱=%d, 틱 간격 %dms->%dms"
+         % (s0, g.score, n0, len(g.snake), boost, plain_ms, fast_ms))
+    root.destroy()
+    return ok, d
+
+
+# ---------------------------------------------------------------------- 18
+def t18():
+    """rock·ground·steel: 점수 +2, 길이 +2."""
+    rows, oks = [], []
+    for name in ("rock", "ground", "steel"):
+        root, g = new_game(acorn=(0, 0))
+        press(root, "Right")
+        n0, s0 = feed(g, root, name)
+        g.acorn = (0, 0)
+        step(root, g)                   # 꼬리를 한 틱 더 남겨 길이가 2 늘어난다
+        after = len(g.snake)
+        step(root, g)                   # 그다음 틱부터는 다시 꼬리를 뗀다
+        oks.append(g.score == s0 + 2 and after == n0 + 2
+                   and len(g.snake) == n0 + 2)
+        rows.append("%s 점수 %d->%d 길이 %d->%d(그 뒤 %d 유지)"
+                    % (name, s0, g.score, n0, after, len(g.snake)))
+        root.destroy()
+    return all(oks), " / ".join(rows)
+
+
+# ---------------------------------------------------------------------- 19
+def t19():
+    """그 밖의 타입: 5주차와 같이 점수 +1, 길이 +1."""
+    rows, oks = [], []
+    for name in ("water", "fire", "grass", "psychic"):
+        root, g = new_game(acorn=(0, 0))
+        press(root, "Right")
+        n0, s0 = feed(g, root, name)
+        oks.append(g.score == s0 + 1 and len(g.snake) == n0 + 1 and g.boost == 0)
+        rows.append("%s 점수+%d 길이+%d 가속=%d"
+                    % (name, g.score - s0, len(g.snake) - n0, g.boost))
+        root.destroy()
+    return all(oks), " / ".join(rows)
+
+
+# ---------------------------------------------------------------------- 20
+def t20():
+    """먹을 때마다 다른 포켓몬이 나온다."""
+    offline(False)
+    feeder = pokemon.Feeder(count=6)
+    names, end = [], time.time() + 25
+    while len(names) < 4 and time.time() < end:
+        one = feeder.take()
+        if one:
+            names.append(one["name"])
+        else:
+            time.sleep(0.2)
+    feeder.stop()
+    offline(True)
+    ok = len(names) == 4 and len(set(names)) >= 3
+    d = "연달아 받은 4마리=%s (서로 다른 이름 %d종)" % (names, len(set(names)))
+    return ok, d
+
+
+# ---------------------------------------------------------------------- 21
+def t21():
+    """인터넷이 끊겨도 오류 없이 켜지고, 갈색 네모로 끝까지 플레이된다."""
+    cut_network(True)                  # 모든 요청이 실패하는 상태로 만든다
+    err, images = None, []
+    no_mon = moved = ate = False
+    try:
+        root, g = new_game(acorn=(0, 0))
+        wait(root, 1200)               # 받아올 시간을 줘도 큐가 비어 있어야 한다
+        no_mon = g.mon is None
+        images = [i for i in g.canvas.find_all() if g.canvas.type(i) == "image"]
+        press(root, "Down")
+        before = list(g.snake)
+        wait(root, 400)
+        moved = g.snake != before
+        hx, hy = g.snake[0]
+        g.acorn = (hx, hy + 1)
+        s0 = g.score
+        step(root, g)
+        ate = g.score == s0 + 1
+        root.destroy()
+    except Exception as exc:
+        err = repr(exc)
+    finally:
+        cut_network(False)
+    ok = (err is None and no_mon and not images and moved and ate)
+    d = ("예외=%s / 먹이 없음=%s, 캔버스 image 요소=%d개(갈색 네모) / "
+         "방향키로 이동=%s / 먹으면 점수+1=%s"
+         % (err, no_mon, len(images), moved, ate))
+    return ok, d
+
+
+# ---------------------------------------------------------------------- 22
+def t22():
+    """받아오는 도중에 X 로 닫아도 오류 없이 끝난다."""
+    offline(False)
+    err, pending, root = None, False, None
+    try:
+        root = tk.Tk()
+        g = A.AcornSnake(root)
+        root.update()                  # 아직 받아오는 중인 시점
+        pending = g.mon is None
+        g.on_close()
+    except Exception as exc:
+        err = repr(exc)
+    try:
+        alive = bool(root and root.winfo_exists())
+    except tk.TclError:
+        alive = False
+    offline(True)
+    ok = (err is None and pending and not alive)
+    d = ("받아오는 중(먹이 아직 없음=%s)에 on_close() -> 예외=%s, 창 살아있음=%s"
+         % (pending, err, alive))
     return ok, d
 
 
 CHECKS = [
-    ("1", "켜자마자 다람쥐·도토리·점수·안내문이 보이고, 방향키 전엔 안 움직임", t1),
+    ("1", "켜자마자 다람쥐·먹이·점수·안내문이 보이고, 방향키 전엔 안 움직임", t1),
     ("2", "방향키를 누르면 그 방향으로 계속 움직임", t2),
     ("3", "반대 방향키 -> 머리·꼬리 교체, 자기 몸에 부딪혀 게임 오버 안 됨", t3),
-    ("4", "도토리를 먹으면 길이+1 점수+1, 새 도토리는 몸이 아닌 빈 칸", t4),
+    ("4", "먹이를 먹으면 길이+1 점수+1, 새 먹이는 몸이 아닌 빈 칸", t4),
     ("5", "점수 5·10·15…에서 빨라지되 어느 한도 이하로는 안 빨라짐", t5),
     ("6", "벽 밖/자기 몸에 닿으면 즉시 멈추고 게임 오버 화면", t6),
     ("7", "게임 오버 뒤 방향키를 눌러도 움직이지 않음", t7),
@@ -349,13 +582,27 @@ CHECKS = [
     ("10", "최고 점수가 창을 닫은 뒤에도 남아 다시 켜면 보임", t10),
     ("11", "JSON 을 지우거나 망가뜨려도 켜지고 최고 점수 0", t11),
     ("12", "게임 도중 X 로 닫아도 오류 없이 종료", t12),
-    ("13", "표준 라이브러리만으로 실행 (pip 설치 없음)", t13),
-    ("14", "py 1~3개·200줄 이하·웹/프레임워크/다중상속 없음", t14),
+    ("13", "외부 패키지는 requests 하나, pyproject·uv.lock 에 잠겨 있음", t13),
+    ("14", "게임 코드와 API 코드가 나뉘고 각 파일 200줄 이하", t14),
+    ("15", "창은 기다림 없이 바로 뜨고, 잠시 뒤 먹이가 포켓몬 그림이 됨", t15),
+    ("16", "점수바에 지금 먹이의 이름과 타입이 보임", t16),
+    ("17", "electric: 점수+1 길이+1, 틱 간격이 절반으로 빨라짐", t17),
+    ("18", "rock·ground·steel: 점수+2 길이+2", t18),
+    ("19", "그 밖의 타입: 점수+1 길이+1 (5주차와 같음)", t19),
+    ("20", "먹을 때마다 다른 포켓몬이 나옴", t20),
+    ("21", "인터넷이 끊겨도 켜지고 갈색 네모로 플레이됨", t21),
+    ("22", "받아오는 도중 X 로 닫아도 오류 없이 종료", t22),
 ]
 
-log("verify_checklist.py — plan.md 「체크리스트」 자동 검증")
-log("python %s / Tk %s / 실행 폴더 %s" % (sys.version.split()[0], tk.TkVersion, Path.cwd()))
+offline(True)       # 기본은 네트워크를 끊은 상태
+
+log("verify_checklist.py — plan.md·api-plan.md 「체크리스트」 자동 검증")
+log("python %s / Tk %s / 실행 폴더 %s"
+    % (sys.version.split()[0], tk.TkVersion, Path.cwd()))
 log("실행 시각 %s" % time.strftime("%Y-%m-%d %H:%M:%S"))
+log("1~14·17~19·21 번은 네트워크를 끊고 돌려, 5주차 동작이 API 와 무관한 것도 함께 본다.")
+log("「.venv 를 지우고 uv run 으로 다시 실행」 항목은 창을 띄우는 검사가 아니라")
+log("명령줄에서 따로 확인하고 README 에 적는다.")
 log("=" * 78)
 for no, name, fn in CHECKS:
     check(no, name, fn)

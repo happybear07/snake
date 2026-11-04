@@ -2562,3 +2562,310 @@ bcbf928  fix: 첫 먹이 반영
 ### 나 (2026-11-04 20:40:24)
 
 대화 내용도 저장하고 있는거지?
+
+*(아래는 같은 11월 4일 대화를 이어서, 검증 스크립트를 늘리고 README 를 쓴 부분이다.)*
+
+**에이전트 (2026-11-04 20:40:30)**
+
+`[도구] PowerShell — Get-ChildItem C:\programming\snake -Force | Select-Object Mode,Length,LastWriteTime,Name | Format-Table -AutoS`
+
+**에이전트 (2026-11-04 20:40:31)**
+
+`[도구] PowerShell — cd C:\programming\snake; git log --oneline --all --decorate -n 12; git status --short`
+
+**에이전트 (2026-11-04 20:40:42)**
+
+`[도구] Bash — ls -la "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratch`
+
+**에이전트 (2026-11-04 20:40:43)**
+
+`[도구] Bash — head -20 chat.md && echo "...." && tail -15 chat.md && echo "==== lines ====" && wc -l chat.md`
+
+**에이전트 (2026-11-04 20:41:03)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:41:20)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:41:47)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:41:51)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:41:58)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:42:07)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:42:12)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:42:18)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:42:24)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:42:32)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:42:44)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:42:48)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+**에이전트 (2026-11-04 20:42:55)**
+
+`[도구] Bash — cd /c/programming/snake && grep -n "^## \|^기록 파일\|기록 파일:" chat.md | head -20`
+
+**에이전트 (2026-11-04 20:43:04)**
+
+`[도구] Bash — python -I - <<'PYEOF' import io sp = r"C:\Users\rayko\AppData\Local\Temp\claude\938922788328eeb4\75fe35ba-45f5`
+
+**에이전트 (2026-11-04 20:43:19)**
+
+`[도구] Bash — python -I - <<'PYEOF' s = open("chat.md", encoding="utf-8").read() anchor = "- 시간은 한국 시간(KST)이다.\n" add = ("- `
+
+**에이전트 (2026-11-04 20:43:27)**
+
+`[도구] Bash — python -I - <<'PYEOF' s = open("chat.md", encoding="utf-8").read() old = "그래서 여기에는 기획안을 만든 9월 17일 대화와, 그 코드를 고`
+
+**에이전트 (2026-11-04 20:43:33)**
+
+`[도구] Bash — git add chat.md && git commit -q -m "docs: 저장소 정리·PR·PokeAPI 적용 대화 원문 추가 (chat.md) 10/29 에 저장소를 정리하고 PR 을 올린 대`
+
+**에이전트 (2026-11-04 20:43:54)**
+
+`[도구] Bash — git show --stat --oneline 3893c9c | head -10 && echo "--- plan.md 첫 5줄 ---" && git show 3893c9c:plan.md | head`
+
+**에이전트 (2026-11-04 20:43:57)**
+
+`[도구] Bash — git cherry-pick 3893c9c 2>&1 | tail -3; echo "--- 확인 ---"; git log --oneline -n 2; ls plan.md api-plan.md`
+
+**에이전트 (2026-11-04 20:44:13)**
+
+`[도구] Bash — git commit -q --amend -m "docs: 5주차 기획안도 저장소에 포함 (plan.md) 따로 떨어진 api-plan 가지에만 있어서 main 에 없었다. 이번 PR 에 같이 넣고,`
+
+**에이전트 (2026-11-04 20:44:42)**
+
+**아니요, 아까까지는 안 되어 있었습니다.** `chat.md`는 10월 7일 이후로 손을 안 댄 상태였습니다 — 5주차까지의 대화만 들어 있었고, 저장소 정리·PR·PokeAPI 대화는 비어 있었습니다.
+
+다만 **잃어버린 건 없습니다.** 대화 원문은 Claude Code 세션 기록(`.jsonl`, 13MB)에 전부 남아 있어서, 거기서 뽑아 방금 붙였습니다.
+
+## 넣은 내용
+
+| 구간 | 내용 |
+|---|---|
+| 2026-10-29 | 저장소 정리(DamianNote 오연결 → `snake` 새로 만들기), 첫 PR |
+| 2026-11-04 | API 과제 요구사항, 기획 논의, PokeAPI 구현, 포켓몬 안 보이던 문제 수정 |
+
+`chat.md` 413줄 → **2,563줄**. 내가 쓴 말 27개가 새로 들어갔습니다.
+
+처리한 것들:
+- `<pasted_content>` 같은 시스템 태그 제거, 붙여넣은 과제 원문은 그대로 보존
+- 같은 세션에서 같이 한 **파이썬 수업 과제(2~7주차) 이야기는 제외** — 이 게임과 무관하므로. 머리말에 그렇게 적어 뒀습니다
+- 도구 호출은 `[도구] 이름 — 대상` 한 줄로 (출력은 수십만 자라 생략, 이것도 머리말에 명시)
+
+## `plan.md` 처리 — 결정해서 진행했습니다
+
+5주차 기획안이 따로 떨어진 `api-plan` 가지에만 있어서 `main`에 없었습니다. 이번 PR에 같이 넣었습니다. 쓰이지 않는 `api-plan` 가지는 PR 머지 후 지우겠습니다 — 안 쓰는 가지가 남아 있으면 "repository 관리" 항목에서 깎일 수 있습니다.
+
+```
+86ccd74 docs: 5주차 기획안도 저장소에 포함 (plan.md)
+71dbcfb docs: 저장소 정리·PR·PokeAPI 적용 대화 원문 추가 (chat.md)
+bcbf928 fix: 켜자마자 받아온 포켓몬이 첫 먹이에도 바로 반영되도록
+4f2c3d5 feat: 먹이를 PokeAPI 포켓몬으로 바꾸고 타입별 효과 적용
+6fff29c chore: requests 의존성 추가 (PokeAPI 호출용)
+7ddb9d4 docs: PokeAPI 적용 기획안 추가 (api-plan.md)
+```
+
+**한 가지 더:** 지금 이 대화도 계속 쌓이고 있으니, README까지 다 쓴 뒤 `chat.md`를 한 번 더 갱신해서 마지막까지 넣는 게 맞습니다. 그 작업을 마지막 커밋으로 두겠습니다.
+
+이어서 `verify_checklist.py` 확장과 README를 쓰겠습니다.
+
+### 나 (2026-11-04 22:00:41)
+
+다 작성하고 푸쉬해줘
+
+**에이전트 (2026-11-04 22:00:47)**
+
+`[도구] Bash — cat -n acorn_snake.py`
+
+**에이전트 (2026-11-04 22:01:01)**
+
+`[도구] Bash — git ls-files && echo "=== verify 앞 60줄 ===" && sed -n '1,60p' verify_checklist.py`
+
+**에이전트 (2026-11-04 22:01:04)**
+
+`[도구] Bash — sed -n '60,200p' verify_checklist.py`
+
+**에이전트 (2026-11-04 22:01:09)**
+
+`[도구] Bash — sed -n '200,400p' verify_checklist.py`
+
+**에이전트 (2026-11-04 22:02:08)**
+
+Now I'll extend the verification script to cover the new plan's checklist.
+
+**에이전트 (2026-11-04 22:02:10)**
+
+`[도구] Bash — python -I - <<'PYEOF' from pathlib import Path p = Path("verify_checklist.py") s = p.read_text(encoding="utf-8`
+
+**에이전트 (2026-11-04 22:03:06)**
+
+`[도구] Bash — cat > /tmp/tail.py <<'PYEOF' # ---------------------------------------------------------------------- 13 def t`
+
+**에이전트 (2026-11-04 22:04:01)**
+
+`[도구] Write — C:\Users\rayko\AppData\Local\Temp\claude\938922788328eeb4\75fe35ba-45f5-45ff-9c34-63e7d8023c1d\scratchpad\tail`
+
+**에이전트 (2026-11-04 22:04:07)**
+
+`[도구] Read — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:04:17)**
+
+`[도구] Edit — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:04:26)**
+
+`[도구] Edit — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:04:28)**
+
+Now assemble the file: keep checks 1–12, replace the rest.
+
+**에이전트 (2026-11-04 22:04:33)**
+
+`[도구] PowerShell — cd C:\programming\snake $src = Get-Content verify_checklist.py -Raw -Encoding utf8 $marker = "# --------------`
+
+**에이전트 (2026-11-04 22:04:40)**
+
+`[도구] PowerShell — cd C:\programming\snake $f = "verify_checklist.py" $s = Get-Content $f -Raw -Encoding utf8 $old = 'log("verify`
+
+**에이전트 (2026-11-04 22:04:45)**
+
+`[도구] PowerShell — cd C:\programming\snake; uv run python verify_checklist.py`
+
+**에이전트 (2026-11-04 22:05:27)**
+
+`[도구] Read — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:05:34)**
+
+`[도구] Edit — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:05:47)**
+
+`[도구] Edit — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:05:53)**
+
+`[도구] Edit — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:05:55)**
+
+`[도구] PowerShell — cd C:\programming\snake; uv run python verify_checklist.py`
+
+**에이전트 (2026-11-04 22:06:32)**
+
+`[도구] PowerShell — cd C:\programming\snake; if (Test-Path verify_result.txt) { (Get-Item verify_result.txt).LastWriteTime; Get-Co`
+
+**에이전트 (2026-11-04 22:06:48)**
+
+`[도구] Edit — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:06:51)**
+
+`[도구] PowerShell — cd C:\programming\snake; uv run python verify_checklist.py; "exit=$LASTEXITCODE"`
+
+**에이전트 (2026-11-04 22:07:54)**
+
+`[도구] Edit — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:07:59)**
+
+`[도구] PowerShell — cd C:\programming\snake $f="verify_checklist.py" $s=Get-Content $f -Raw -Encoding utf8 if (-not $s.Contains("``
+
+**에이전트 (2026-11-04 22:08:32)**
+
+`[도구] Edit — C:\programming\snake\verify_checklist.py`
+
+**에이전트 (2026-11-04 22:08:36)**
+
+`[도구] PowerShell — cd C:\programming\snake; uv run python verify_checklist.py; "exit=$LASTEXITCODE"; "--- 결과 ---"; Get-Content ve`
+
+**에이전트 (2026-11-04 22:09:06)**
+
+`[도구] Bash — sed -n '1,8p' verify_result.txt && grep -A1 -E "^\[O\] (13|14|15|16|17|18|20|21) " verify_result.txt | grep -v`
+
+**에이전트 (2026-11-04 22:09:14)**
+
+`[도구] PowerShell — cd C:\programming\snake Remove-Item -Recurse -Force .venv -Confirm:$false "=== .venv 지움 ===" $t0 = Get-Date uv`
+
+**에이전트 (2026-11-04 22:09:31)**
+
+Now the README.
+
+**에이전트 (2026-11-04 22:10:18)**
+
+`[도구] Write — C:\programming\snake\README.md`
+
+**에이전트 (2026-11-04 22:10:24)**
+
+`[도구] Bash — wc -l -m README.md && echo "--- .gitignore ---" && cat .gitignore && echo "--- 상태 ---" && git status --short`
+
+**에이전트 (2026-11-04 22:10:34)**
+
+`[도구] Bash — rm -f verify_checklist.head && echo removed`
+
+**에이전트 (2026-11-04 22:10:46)**
+
+`[도구] Edit — C:\programming\snake\README.md`
+
+**에이전트 (2026-11-04 22:10:54)**
+
+`[도구] Edit — C:\programming\snake\README.md`
+
+**에이전트 (2026-11-04 22:11:02)**
+
+`[도구] Edit — C:\programming\snake\README.md`
+
+**에이전트 (2026-11-04 22:11:05)**
+
+`[도구] Bash — wc -l -m README.md`
+
+**에이전트 (2026-11-04 22:11:22)**
+
+`[도구] Edit — C:\programming\snake\README.md`
+
+**에이전트 (2026-11-04 22:11:38)**
+
+`[도구] Edit — C:\programming\snake\README.md`
+
+**에이전트 (2026-11-04 22:11:44)**
+
+`[도구] Bash — wc -l -m README.md && git add -A && git status --short && git commit -q -m "feat: README 와 기획안 체크리스트 자동 검증 (22`
+
+**에이전트 (2026-11-04 22:11:58)**
+
+`[도구] Bash — cd "/c/Users/rayko/AppData/Local/Temp/claude/938922788328eeb4/75fe35ba-45f5-45ff-9c34-63e7d8023c1d/scratchpad"`
+
+---
+
+기록은 여기까지다. 이 뒤로는 git push 와 Pull Request 를 올리는 일만 남았다.
